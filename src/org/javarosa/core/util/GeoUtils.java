@@ -120,4 +120,39 @@ public final class GeoUtils {
       return longitude;
     }
   }
+
+  public static String parseCustomGeoPointsToRaw(String customGeoTrace){
+      String preDefGeoTrace = "geotrace: ";
+      String preDefSupport = "support: ";
+
+      customGeoTrace = customGeoTrace.replace(preDefGeoTrace, "");
+
+      if(customGeoTrace.contains(preDefSupport)){
+          customGeoTrace = customGeoTrace.split(preDefSupport)[0];
+      }
+      customGeoTrace = customGeoTrace.replace("; ", ";");
+
+      return getRaw(customGeoTrace);
+  }
+
+    private static String getRaw(String traceString){
+        String[] sa = traceString.split(";");
+        StringBuilder raw = new StringBuilder();
+
+        for (String val : sa) {
+            String[] sp = val.split(" ");
+
+            String lat = sp[0].replace(" ", "");
+            String lng = sp[1].replace(" ", "");
+            String altStr = sp[2].replace(" ", "");
+            String acu = sp[3].replace(" ", "");
+
+            raw.append(getRawString(lat, lng, altStr, acu)).append(";");
+        }
+        return raw.toString();
+    }
+
+    private static String getRawString(String lat, String lng, String alt, String acu){
+        return lat + " " + lng + " " + alt + " " + acu;
+    }
 }

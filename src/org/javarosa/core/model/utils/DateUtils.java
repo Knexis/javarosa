@@ -16,14 +16,12 @@
 
 package org.javarosa.core.model.utils;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
 import java.util.TimeZone;
+import java.util.List;
+import java.util.ArrayList;
+
 import org.javarosa.core.services.locale.Localization;
 import org.javarosa.core.util.MathUtils;
 
@@ -63,8 +61,8 @@ public class DateUtils {
             secTicks = 0;
             dow = 0;
 
-//            tzStr = "Z";
-//            tzOffset = 0;
+//			tzStr = "Z";
+//			tzOffset = 0;
         }
 
         public int year;
@@ -78,32 +76,12 @@ public class DateUtils {
         /** NOTE: CANNOT BE USED TO SPECIFY A DATE **/
         public int dow; //1-7;
 
-//        public String tzStr;
-//        public int tzOffset; //s ahead of UTC
-
-        DateFields(int year, int month, int day, int hour, int minute, int second, int secTicks, int dow) {
-            this.year = year;
-            this.month = month;
-            this.day = day;
-            this.hour = hour;
-            this.minute = minute;
-            this.second = second;
-            this.secTicks = secTicks;
-            this.dow = dow;
-        }
-
-        public static DateFields of(int year, int month, int day, int hour, int minute, int second, int secTicks) {
-            // The official API returns an ISO 8601 day of week
-            // with a range of values from 1 for Monday to 7 for Sunday].
-            // TODO migrate dow field to a DayOfWeek type to avoid any possible interpretation errors
-            int iso8601Dow = java.time.LocalDateTime.of(year, month, day, hour, minute, second, secTicks * 1_000_000).getDayOfWeek().getValue();
-            int dow = iso8601Dow == 7 ? 0 : iso8601Dow;
-            return new DateFields(year, month, day, hour, minute, second, secTicks, dow);
-        }
+//		public String tzStr;
+//		public int tzOffset; //s ahead of UTC
 
         public boolean check () {
             return (inRange(month, 1, 12) && inRange(day, 1, daysInMonth(month - MONTH_OFFSET, year)) &&
-                    inRange(hour, 0, 23) && inRange(minute, 0, 59) && inRange(second, 0, 59) && inRange(secTicks, 0, 999));
+                inRange(hour, 0, 23) && inRange(minute, 0, 59) && inRange(second, 0, 59) && inRange(secTicks, 0, 999));
         }
     }
 
@@ -136,26 +114,22 @@ public class DateUtils {
     }
 
     public static Date getDate (DateFields f, String timezone) {
-        ZoneId zone = timezone != null
-            ? ZoneId.of(timezone)
-            : ZoneId.systemDefault();
-        return Date.from(getLocalDateTime(f).atZone(zone).toInstant());
+        Calendar cd = Calendar.getInstance();
+        if(timezone != null) {
+            cd.setTimeZone(TimeZone.getTimeZone(timezone));
+        }
+        cd.set(Calendar.YEAR, f.year);
+        cd.set(Calendar.MONTH, f.month - MONTH_OFFSET);
+        cd.set(Calendar.DAY_OF_MONTH, f.day);
+        cd.set(Calendar.HOUR_OF_DAY, f.hour);
+        cd.set(Calendar.MINUTE, f.minute);
+        cd.set(Calendar.SECOND, f.second);
+        cd.set(Calendar.MILLISECOND, f.secTicks);
+
+        return cd.getTime();
     }
 
-    private static LocalDateTime getLocalDateTime(DateFields f) {
-        return LocalDateTime.of(
-            f.year,
-            f.month,
-            f.day,
-            f.hour,
-            f.minute,
-            f.second,
-            // LocalDateTimes use nanoseconds instead of milliseconds
-            f.secTicks * 1_000_000
-        );
-    }
-
-    /* ==== FORMATTING DATES/TIMES TO STANDARD STRINGS ==== */
+	/* ==== FORMATTING DATES/TIMES TO STANDARD STRINGS ==== */
 
     public static String formatDateTime (Date d, int format) {
         if (d == null) {
@@ -166,10 +140,10 @@ public class DateUtils {
 
         String delim;
         switch (format) {
-        case FORMAT_ISO8601: delim = "T"; break;
-        case FORMAT_TIMESTAMP_SUFFIX: delim = ""; break;
-        case FORMAT_TIMESTAMP_HTTP: delim = " "; break;
-        default: delim = " "; break;
+            case FORMAT_ISO8601: delim = "T"; break;
+            case FORMAT_TIMESTAMP_SUFFIX: delim = ""; break;
+            case FORMAT_TIMESTAMP_HTTP: delim = " "; break;
+            default: delim = " "; break;
         }
 
         return formatDate(fields, format) + delim + formatTime(fields, format);
@@ -185,22 +159,22 @@ public class DateUtils {
 
     private static String formatDate (DateFields f, int format) {
         switch (format) {
-        case FORMAT_ISO8601: return formatDateISO8601(f);
-        case FORMAT_HUMAN_READABLE_SHORT: return formatDateColloquial(f);
-        case FORMAT_HUMAN_READABLE_DAYS_FROM_TODAY: return formatDaysFromToday(f);
-        case FORMAT_TIMESTAMP_SUFFIX: return formatDateSuffix(f);
-        case FORMAT_TIMESTAMP_HTTP: return formatDateHttp(f);
-        default: return null;
+            case FORMAT_ISO8601: return formatDateISO8601(f);
+            case FORMAT_HUMAN_READABLE_SHORT: return formatDateColloquial(f);
+            case FORMAT_HUMAN_READABLE_DAYS_FROM_TODAY: return formatDaysFromToday(f);
+            case FORMAT_TIMESTAMP_SUFFIX: return formatDateSuffix(f);
+            case FORMAT_TIMESTAMP_HTTP: return formatDateHttp(f);
+            default: return null;
         }
     }
 
     private static String formatTime (DateFields f, int format) {
         switch (format) {
-        case FORMAT_ISO8601: return formatTimeISO8601(f);
-        case FORMAT_HUMAN_READABLE_SHORT: return formatTimeColloquial(f);
-        case FORMAT_TIMESTAMP_SUFFIX: return formatTimeSuffix(f);
-        case FORMAT_TIMESTAMP_HTTP: return formatTimeHttp(f);
-        default: return null;
+            case FORMAT_ISO8601: return formatTimeISO8601(f);
+            case FORMAT_HUMAN_READABLE_SHORT: return formatTimeColloquial(f);
+            case FORMAT_TIMESTAMP_SUFFIX: return formatTimeSuffix(f);
+            case FORMAT_TIMESTAMP_HTTP: return formatTimeHttp(f);
+            default: return null;
         }
     }
 
@@ -238,8 +212,7 @@ public class DateUtils {
         String time = intPad(f.hour, 2) + ":" + intPad(f.minute, 2) + ":" + intPad(f.second, 2) + "." + intPad(f.secTicks, 3);
 
         //Time Zone ops (1 in the first field corresponds to 'CE' ERA)
-        int milliday = ((f.hour * 60 + f.minute)*60 + f.second) * 1000 + f.secTicks;
-        int offset = TimeZone.getDefault().getOffset(1,f.year, f.month - 1, f.day, f.dow, milliday);
+        int offset = TimeZone.getDefault().getOffset(1,f.year, f.month - 1, f.day, f.dow, 0);
 
         //NOTE: offset is in millis
         if(offset ==0 ) {
@@ -286,34 +259,36 @@ public class DateUtils {
                     c = format.charAt(i);
                 }
 
-                if (c == '%') {            //literal '%'
+                if (c == '%') {			//literal '%'
                     sb.append("%");
-                } else if (c == 'Y') {    //4-digit year
+                } else if (c == 'Y') {	//4-digit year
                     sb.append(intPad(f.year, 4));
-                } else if (c == 'y') {    //2-digit year
+                } else if (c == 'y') {	//2-digit year
                     sb.append(intPad(f.year, 4).substring(2));
-                } else if (c == 'm') {    //0-padded month
+                } else if (c == 'm') {	//0-padded month
                     sb.append(intPad(f.month, 2));
-                } else if (c == 'n') {    //numeric month
+                } else if (c == 'n') {	//numeric month
                     sb.append(f.month);
-                } else if (c == 'b') {    //short text month
-                    sb.append(getLocalDateTime(f).format(DateTimeFormatter.ofPattern("MMM")));
-                } else if (c == 'd') {    //0-padded day of month
+                } else if (c == 'b') {	//short text month
+                    String[] months = new String[] {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+                    sb.append(months[f.month - 1]);
+                } else if (c == 'd') {	//0-padded day of month
                     sb.append(intPad(f.day, 2));
-                } else if (c == 'e') {    //day of month
+                } else if (c == 'e') {	//day of month
                     sb.append(f.day);
-                } else if (c == 'H') {    //0-padded hour (24-hr time)
+                } else if (c == 'H') {	//0-padded hour (24-hr time)
                     sb.append(intPad(f.hour, 2));
-                } else if (c == 'h') {    //hour (24-hr time)
+                } else if (c == 'h') {	//hour (24-hr time)
                     sb.append(f.hour);
-                } else if (c == 'M') {    //0-padded minute
+                } else if (c == 'M') {	//0-padded minute
                     sb.append(intPad(f.minute, 2));
-                } else if (c == 'S') {    //0-padded second
+                } else if (c == 'S') {	//0-padded second
                     sb.append(intPad(f.second, 2));
-                } else if (c == '3') {    //0-padded millisecond ticks (000-999)
+                } else if (c == '3') {	//0-padded millisecond ticks (000-999)
                     sb.append(intPad(f.secTicks, 3));
-                } else if (c == 'a') {    //Three letter short text day
-                    sb.append(getLocalDateTime(f).format(DateTimeFormatter.ofPattern("EEE")));
+                } else if (c == 'a') {	//Three letter short text day
+                    String[] dayNames = new String[] {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+                    sb.append(dayNames[f.dow - 1]);
                 } else if (c == 'Z' || c == 'A' || c == 'B') {
                     throw new RuntimeException("unsupported escape in date format string [%" + c + "]");
                 } else {
@@ -327,7 +302,7 @@ public class DateUtils {
         return sb.toString();
     }
 
-    /* ==== PARSING DATES/TIMES FROM STANDARD STRINGS ==== */
+	/* ==== PARSING DATES/TIMES FROM STANDARD STRINGS ==== */
 
     public static Date parseDateTime (String str) {
         DateFields fields = new DateFields();
@@ -353,21 +328,15 @@ public class DateUtils {
     }
 
     public static Date parseTime (String str) {
-        DateFields fields = getFields(new Date());
-        fields.second = 0;
-        fields.secTicks = 0;
+        DateFields fields = new DateFields();
         if (!parseTime(str, fields)) {
             return null;
         }
-        // time zone may wrap time across midnight. Clear that.
-        fields.year = 1970;
-        fields.month = 1;
-        fields.day = 1;
         return getDate(fields);
     }
 
     private static boolean parseDate (String dateStr, DateFields f) {
-      List<String> pieces = split(dateStr, "-", false);
+        List<String> pieces = split(dateStr, "-", false);
         if (pieces.size() != 3)
             return false;
 
@@ -397,7 +366,7 @@ public class DateUtils {
         } else if(timeStr.indexOf("+") != -1 || timeStr.indexOf("-") != -1) {
             timeOffset = new DateFields();
 
-         List<String> pieces = split(timeStr, "+", false);
+            List<String> pieces = split(timeStr, "+", false);
 
             //We're going to add the Offset straight up to get UTC
             //so we need to invert the sign on the offset string
@@ -415,7 +384,7 @@ public class DateUtils {
             String offset = pieces.get(1);
             String hours = offset;
             if(offset.indexOf(":") != -1) {
-            List<String> tzPieces = split(offset, ":", false);
+                List<String> tzPieces = split(offset, ":", false);
                 hours = tzPieces.get(0);
                 int mins = Integer.parseInt(tzPieces.get(1));
                 timeOffset.minute = mins * offsetSign;
@@ -440,8 +409,7 @@ public class DateUtils {
         //Now apply any relevant offsets from the timezone.
         Calendar c = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
-        long msecOffset = (((60 * timeOffset.hour) + timeOffset.minute) * 60 * 1000L);
-        c.setTime(new Date(DateUtils.getDate(f, "UTC").getTime() + msecOffset));
+        c.setTime(new Date(DateUtils.getDate(f, "UTC").getTime() + (((60 * timeOffset.hour)  + timeOffset.minute) * 60 * 1000)));
 
         //c is now in the timezone of the parsed value, so put
         //it in the local timezone.
@@ -451,12 +419,6 @@ public class DateUtils {
 
         DateFields adjusted = getFields(c.getTime());
 
-        // time zone adjustment may +/- across midnight
-        // which can result in +/- across a year
-        f.year = adjusted.year;
-        f.month = adjusted.month;
-        f.day = adjusted.day;
-        f.dow = adjusted.dow;
         f.hour = adjusted.hour;
         f.minute = adjusted.minute;
         f.second = adjusted.second;
@@ -473,7 +435,7 @@ public class DateUtils {
      * @return
      */
     private static boolean parseRawTime (String timeStr, DateFields f) {
-      List<String> pieces = split(timeStr, ":", false);
+        List<String> pieces = split(timeStr, ":", false);
         if (pieces.size() != 2 && pieces.size() != 3)
             return false;
 
@@ -491,32 +453,9 @@ public class DateUtils {
                 }
                 secStr = secStr.substring(0, i);
 
-                int idxDec = secStr.indexOf('.');
-                if ( idxDec == -1 ) {
-                    if ( secStr.length() == 0 ) {
-                        f.second = 0;
-                    } else {
-                        f.second = Integer.parseInt(secStr);
-                    }
-                    f.secTicks = 0;
-                } else {
-                    String secPart = secStr.substring(0,idxDec);
-                    if ( secPart.length() == 0 ) {
-                        f.second = 0;
-                    } else {
-                        f.second = Integer.parseInt(secPart);
-                    }
-                    String secTickStr = secStr.substring(idxDec+1);
-                    if ( secTickStr.length() > 0 ) {
-                        f.secTicks = Integer.parseInt(secTickStr);
-                    } else {
-                        f.secTicks = 0;
-                    }
-                }
-
                 double fsec = Double.parseDouble(secStr);
                 f.second = (int)fsec;
-                f.secTicks = (int)(1000.0 * fsec - 1000.0 * f.second);
+                f.secTicks = (int)(1000.0 * (fsec - f.second));
             }
         } catch (NumberFormatException nfe) {
             return false;
@@ -526,7 +465,7 @@ public class DateUtils {
     }
 
 
-    /* ==== DATE UTILITY FUNCTIONS ==== */
+	/* ==== DATE UTILITY FUNCTIONS ==== */
 
     public static Date getDate (int year, int month, int day) {
         DateFields f = new DateFields();
@@ -550,7 +489,7 @@ public class DateUtils {
         return roundDate(new Date());
     }
 
-    /* ==== CALENDAR FUNCTIONS ==== */
+	/* ==== CALENDAR FUNCTIONS ==== */
 
     /**
      * Returns the fractional time within the local day.
@@ -603,7 +542,7 @@ public class DateUtils {
     }
 
 
-    /* ==== Parsing to Human Text ==== */
+	/* ==== Parsing to Human Text ==== */
 
     /**
      * Provides text representing a span of time.
@@ -634,7 +573,7 @@ public class DateUtils {
         }
     }
 
-    /* ==== DATE OPERATIONS ==== */
+	/* ==== DATE OPERATIONS ==== */
 
     /**
      * Creates a Date object representing the amount of time between the
@@ -676,14 +615,14 @@ public class DateUtils {
             cd.setTime(ref);
 
             switch(cd.get(Calendar.DAY_OF_WEEK)) {
-            case Calendar.SUNDAY: current_dow = 0; break;
-            case Calendar.MONDAY: current_dow = 1; break;
-            case Calendar.TUESDAY: current_dow = 2; break;
-            case Calendar.WEDNESDAY: current_dow = 3; break;
-            case Calendar.THURSDAY: current_dow = 4; break;
-            case Calendar.FRIDAY: current_dow = 5; break;
-            case Calendar.SATURDAY: current_dow = 6; break;
-            default: throw new RuntimeException(); //something is wrong
+                case Calendar.SUNDAY: current_dow = 0; break;
+                case Calendar.MONDAY: current_dow = 1; break;
+                case Calendar.TUESDAY: current_dow = 2; break;
+                case Calendar.WEDNESDAY: current_dow = 3; break;
+                case Calendar.THURSDAY: current_dow = 4; break;
+                case Calendar.FRIDAY: current_dow = 5; break;
+                case Calendar.SATURDAY: current_dow = 6; break;
+                default: throw new RuntimeException(); //something is wrong
             }
 
             diff = (((current_dow - target_dow) + (7 + offset)) % 7 - offset) + (7 * nAgo) - (beginning ? 0 : 6); //booyah
@@ -755,7 +694,7 @@ public class DateUtils {
         //half-day offset is needed to handle differing DST offsets!
     }
 
-    /* ==== UTILITY ==== */
+	/* ==== UTILITY ==== */
 
     /**
      * Tokenizes a string based on the given delimiter string
@@ -806,7 +745,7 @@ public class DateUtils {
         return (x >= min && x <= max);
     }
 
-    /* ==== GARBAGE (backward compatibility; too lazy to remove them now) ==== */
+	/* ==== GARBAGE (backward compatibility; too lazy to remove them now) ==== */
 
     public static String formatDateToTimeStamp(Date date) {
         return formatDateTime(date, FORMAT_ISO8601);

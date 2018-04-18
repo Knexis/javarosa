@@ -16,15 +16,16 @@
 
 package org.javarosa.core.model.data;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-
+import org.javarosa.core.util.GeoUtils;
 import org.javarosa.core.util.externalizable.DeserializationException;
 import org.javarosa.core.util.externalizable.ExtUtil;
 import org.javarosa.core.util.externalizable.PrototypeFactory;
 import org.javarosa.xpath.IExprDataType;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
 
 
 /**
@@ -146,7 +147,7 @@ public class GeoShapeData implements IAnswerData, IExprDataType {
 
     @Override
     public void readExternal(DataInputStream in, PrototypeFactory pf) throws IOException,
-            DeserializationException {
+        DeserializationException {
         points.clear();
         int len = (int) ExtUtil.readNumeric(in);
         for ( int i = 0 ; i < len ; ++i ) {
@@ -174,7 +175,15 @@ public class GeoShapeData implements IAnswerData, IExprDataType {
 
     @Override
     public GeoShapeData cast(UncastData data) throws IllegalArgumentException {
-        String[] parts = data.value.split(";");
+        String[] parts;
+
+        //production Fail-safe
+        //if parsing fails return to old data manipulation in catch
+        try {
+            parts = GeoUtils.parseCustomGeoPointsToRaw(data.value).split(";");
+        }catch (Exception e){
+            parts = data.value.split(";");
+        }
 
         // silly...
         GeoPointData t = new GeoPointData();
